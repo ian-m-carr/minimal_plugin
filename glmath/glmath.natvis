@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+    <!-- vec<3... -->
+    <Type Name="glmath::vec3f">
+        <DisplayString>x: {x} y: {y} z: {z}</DisplayString>
+        <Expand>
+            <Item Name="x">x</Item>
+            <Item Name="y">y</Item>
+            <Item Name="z">z</Item>
+        </Expand>
+    </Type>
+    <!-- vec<4... -->
+    <Type Name="glmath::vec4f">
+        <DisplayString>x: {x} y: {y} z: {z} w: {w}</DisplayString>
+        <Expand>
+            <Item Name="x">x</Item>
+            <Item Name="y">y</Item>
+            <Item Name="z">z</Item>
+            <Item Name="w">w</Item>
+        </Expand>
+    </Type>
+</AutoVisualizer>
