@@ -114,73 +114,116 @@ static std::string resolve_resource(const std::string_view &resource_name) {
     throw std::runtime_error(std::format("Resource {} not found in aircraft or Resources folder", resource_name));
 }
 
-static int avionics_draw_callback(XPLMDeviceID inDeviceID, int inIsBefore, void *inRefcon) {
-    // only draw in the after
-    if (!inIsBefore) {
-        // grab the current winding order
-        GLint front_face;
-        glGetIntegerv(GL_FRONT_FACE, &front_face);
+void do_render(const gldraw::rect &rct) {
+    // grab the current winding order
+    GLint front_face;
+    glGetIntegerv(GL_FRONT_FACE, &front_face);
 
 #if defined CCW_WINDING
-        // set the winding order to OpenGL standard
-        glFrontFace(GL_CCW);
+    // set the winding order to OpenGL standard
+    glFrontFace(GL_CCW);
 
-        // check the new front_face setting is applied
-        GLint front_face1;
-        glGetIntegerv(GL_FRONT_FACE, &front_face1);
+    // check the new front_face setting is applied
+    GLint front_face1;
+    glGetIntegerv(GL_FRONT_FACE, &front_face1);
 #endif
 
-        XPLMSetGraphicsState(0/*GL_FOG*/, 1/*GL_TEXTURE_2D*/, 0/*GL_LIGHT0*/, 0/*GL_ALPHA_TEST*/, 1/*GL_BLEND*/, 0/*GL_DEPTH_TEST*/, 0/*glDepthMask(GL_TRUE)*/);
+    XPLMSetGraphicsState(0/*GL_FOG*/, 1/*GL_TEXTURE_2D*/, 0/*GL_LIGHT0*/, 0/*GL_ALPHA_TEST*/, 1/*GL_BLEND*/, 0/*GL_DEPTH_TEST*/, 0/*glDepthMask(GL_TRUE)*/);
 
-        // render the content
+    // render the content
 
-        // the shader program
-        GLuint g1000_shader = gldraw::get_coloured_vertex_shader();
-        glUseProgram(g1000_shader);
-        glUniform1i(glGetUniformLocation(g1000_shader, "our_texture"), 0);
+    // the shader program
+    GLuint g1000_shader = gldraw::get_coloured_vertex_shader();
+    glUseProgram(g1000_shader);
+    glUniform1i(glGetUniformLocation(g1000_shader, "our_texture"), 0);
 
-        // orthographic pixel projection
-        glmath::mat4x4 fb_projection2 = glmath::ortho(0, 1024, 0, 768);
+    // orthographic pixel projection
+    GLint vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+    // an ortho projection
+    glmath::mat4x4 fb_projection = glmath::ortho(vp[0], vp[0]+vp[2], vp[1], vp[1]+vp[3]);
 
-        // set the projection matrix for the shader
-        glUniformMatrix4fv(glGetUniformLocation(g1000_shader, "projection"), 1, GL_FALSE, fb_projection2.as_pointer_to_float());
+    // set the projection matrix for the shader
+    glUniformMatrix4fv(glGetUniformLocation(g1000_shader, "projection"), 1, GL_FALSE, fb_projection.as_pointer_to_float());
 
-        // setup the object transform
-        glmath::mat4x4 model_mat = glmath::mat4x4::identity;
+    // setup the object transform
+    glmath::mat4x4 model_mat = glmath::mat4x4::identity;
 
-        // store the model transform to the shader
-        glUniformMatrix4fv(glGetUniformLocation(g1000_shader, "model"), 1, GL_FALSE, model_mat.as_pointer_to_float());
+    // store the model transform to the shader
+    glUniformMatrix4fv(glGetUniformLocation(g1000_shader, "model"), 1, GL_FALSE, model_mat.as_pointer_to_float());
 
-        // render the vertex manager content
+    // render the vertex manager content
 
-        // bind textures on corresponding texture units
-        XPLMBindTexture2d(_grid_texture_id_, 0);
+    // bind textures on corresponding texture units
+    XPLMBindTexture2d(_grid_texture_id_, 0);
 
-        // render the rectangle
-        if (_vmgr_) {
+    // render the rectangle
+    if (_vmgr_) {
 #if defined PER_FRAME_GEOM
-            _vmgr_->clear();
-            // rectangle 1024x768 and uv 0,0 to 1,1
-            _vmgr_->add_quad({{0.0f,    0.0f},
-                              {1024.0f, 768.0f}});
-            _vmgr_->gen_buffers();
+        _vmgr_->clear();
+        _vmgr_->add_quad(rct);
+        _vmgr_->gen_buffers();
 #else
-            if (!_buffers_generated_) {
+        if (!_buffers_generated_) {
                 _vmgr_->gen_buffers();
                 _buffers_generated_ = true;
             }
 #endif
-            glBindVertexArray(_vmgr_->get_vao());
-            glDrawElements(GL_TRIANGLES, _vmgr_->get_element_count(), GL_UNSIGNED_INT, 0);
-        }
-        glBindVertexArray(0);
+        glBindVertexArray(_vmgr_->get_vao());
+        glDrawElements(GL_TRIANGLES, _vmgr_->get_element_count(), GL_UNSIGNED_INT, 0);
+    }
+    glBindVertexArray(0);
 
 #if defined CCW_WINDING
-        // set the winding order back to stored value
-        glFrontFace(front_face);
+    // set the winding order back to stored value
+    glFrontFace(front_face);
 #endif
+}
+
+static int avionics_draw_callback(XPLMDeviceID inDeviceID, int inIsBefore, void *inRefcon) {
+    // only draw in the after
+    if (!inIsBefore) {
+        do_render({{0.0f,    0.0f},
+                   {1024.0f, 768.0f}});
     }
     return 1;
+}
+
+static XPLMWindowID _window_;
+
+void window_draw_handler(XPLMWindowID id, void *inRefcon) {
+    int left, top, right, bottom;
+    XPLMGetWindowGeometry(id, &left, &top, &right, &bottom);
+
+    do_render({{static_cast<float>(left),         static_cast<float>(bottom)},
+               {static_cast<float>(right - left), static_cast<float>(top - bottom)}});
+}
+
+void create_window() {
+    XPLMCreateWindow_t window_params;
+    window_params.structSize = sizeof(window_params);
+    window_params.left = 200;
+    window_params.right = 200 + 1024;
+    window_params.top = 200;
+    window_params.bottom = 200 - 768;
+    window_params.visible = 1;
+
+    window_params.drawWindowFunc = window_draw_handler;
+    window_params.handleMouseClickFunc = nullptr;
+    window_params.handleRightClickFunc = nullptr;
+    window_params.handleKeyFunc = nullptr;
+    window_params.handleCursorFunc = nullptr;
+    window_params.handleMouseWheelFunc = nullptr;
+    window_params.refcon = nullptr;
+    window_params.decorateAsFloatingWindow = xplm_WindowDecorationRoundRectangle;
+    window_params.layer = xplm_WindowLayerFloatingWindows;
+
+    // window_params.handleRightClickFunc
+    _window_ = XPLMCreateWindowEx(&window_params);
+
+    if (_window_) {
+        XPLMSetWindowTitle(_window_, "Test Window");
+    }
 }
 
 PLUGIN_API int XPluginStart(char *name, char *sig, char *desc) {
@@ -219,6 +262,8 @@ PLUGIN_API int XPluginStart(char *name, char *sig, char *desc) {
     } catch (const std::exception &ex) {
         XPLMDebugString(std::format("exception configuring plugin: {}", ex.what()).c_str());
     }
+
+    create_window();
 
     return 1;
 }
