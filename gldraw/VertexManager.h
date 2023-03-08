@@ -68,14 +68,14 @@ namespace gldraw {
         }
 
         void add_quad(const gldraw::rect &rct, const gldraw::colour &colour = gldraw::COL_WHITE,
-                      std::function<const void(TVertex &vertex)> vertex_callback = nullptr) {
+                      std::function<const void(vertex_type &vertex)> vertex_callback = nullptr) {
             unsigned int indx = _vertices.size();
 
             /// bl, tl, tr, br
-            _vertices.emplace_back(gldraw::coloured_vertex(rct.pos, {0.0f, 0.0f}, colour));
-            _vertices.emplace_back(gldraw::coloured_vertex(rct.pos + glmath::vec2f(0.0f, rct.size.y), {0.0f, 1.0f}, colour));
-            _vertices.emplace_back(gldraw::coloured_vertex(rct.pos + rct.size, {1.0f, 1.0f}, colour));
-            _vertices.emplace_back(gldraw::coloured_vertex(rct.pos + glmath::vec2f(rct.size.x, 0.0f), {1.0f, 0.0f}, colour));
+            _vertices.emplace_back(vertex_type(rct.pos, {0.0f, 0.0f}, colour));
+            _vertices.emplace_back(vertex_type(rct.pos + glmath::vec2f(0.0f, rct.size.y), {0.0f, 1.0f}, colour));
+            _vertices.emplace_back(vertex_type(rct.pos + rct.size, {1.0f, 1.0f}, colour));
+            _vertices.emplace_back(vertex_type(rct.pos + glmath::vec2f(rct.size.x, 0.0f), {1.0f, 0.0f}, colour));
 
             if (vertex_callback) {
                 vertex_callback(_vertices[_vertices.size() - 4]);
@@ -115,10 +115,11 @@ namespace gldraw {
 
             // do we re-use the buffer or generate a new larger one?
             if (_vertices.size() <= _vert_buf_size && !_static_buffers) {
-                glBufferSubData(GL_ARRAY_BUFFER, 0, _vertices.size() * sizeof(TVertex), _vertices.data());
+                glBufferSubData(GL_ARRAY_BUFFER, 0, (1 + _vertices.size()) * sizeof(vertex_type), _vertices.data());
             } else {
                 // need to allocate a new larger buffer
-                glBufferData(GL_ARRAY_BUFFER, _vertices.size() * sizeof(TVertex), _vertices.data(),
+                size_t bsiz = (1 + _vertices.size()) * sizeof(vertex_type);
+                glBufferData(GL_ARRAY_BUFFER, bsiz, _vertices.data(),
                              _static_buffers ? GL_STATIC_DRAW : GL_STREAM_DRAW);
                 _vert_buf_size = _vertices.size();
 
@@ -129,9 +130,9 @@ namespace gldraw {
 
             // do we re-use the buffer or generate a new larger one?
             if (_indices.size() <= _ind_buf_size && !_static_buffers) {
-                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, _indices.size() * sizeof(unsigned int), _indices.data());
+                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, (1 + _indices.size()) * sizeof(unsigned int), _indices.data());
             } else {
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, _indices.size() * sizeof(unsigned int), _indices.data(),
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, (1 + _indices.size()) * sizeof(unsigned int), _indices.data(),
                              _static_buffers ? GL_STATIC_DRAW : GL_STREAM_DRAW);
                 _ind_buf_size = _indices.size();
             }
