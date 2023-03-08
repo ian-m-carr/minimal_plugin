@@ -15,6 +15,8 @@
 #include <glmath/vectors.h>
 #include <glmath/matrices.h>
 
+#define ZINK_BUFFER_CORRUPTION_BUG
+
 namespace gldraw {
     template<typename TVertex>
     class VertexManager {
@@ -113,14 +115,40 @@ namespace gldraw {
 
             glBindBuffer(GL_ARRAY_BUFFER, _VBO);
 
+            void *p_vert_buf = _vertices.data();
+            void *p_index_buf = _indices.data();
+
+            size_t vert_buf_size = _vertices.size() * sizeof(vertex_type);
+            size_t index_buf_size = _indices.size() * sizeof(unsigned int);
+
+#if defined ZINK_BUFFER_CORRUPTION_BUG
+            // allocate new buffers one element larger
+            std::vector<vertex_type> new_vert_buf(_vertices.size()+1);
+
+            // copy the content from the old to the expanded buffer
+            std::memcpy(new_vert_buf.data(), p_vert_buf, vert_buf_size);
+
+            // use the new
+            p_vert_buf = new_vert_buf.data();
+            vert_buf_size = new_vert_buf.size() * sizeof(vertex_type);
+
+            // allocate new buffers one element larger
+            std::vector<unsigned int> new_index_buf(_indices.size()+1);
+
+            // copy the content from the old to the expanded buffer
+            std::memcpy(new_index_buf.data(), p_index_buf, index_buf_size);
+
+            // use the new
+            p_index_buf = new_index_buf.data();
+            index_buf_size = new_index_buf.size() * sizeof(unsigned int);
+#endif
+
             // do we re-use the buffer or generate a new larger one?
             if (_vertices.size() <= _vert_buf_size && !_static_buffers) {
-                glBufferSubData(GL_ARRAY_BUFFER, 0, (1 + _vertices.size()) * sizeof(vertex_type), _vertices.data());
+                glBufferSubData(GL_ARRAY_BUFFER, 0, vert_buf_size, p_vert_buf);
             } else {
                 // need to allocate a new larger buffer
-                size_t bsiz = (1 + _vertices.size()) * sizeof(vertex_type);
-                glBufferData(GL_ARRAY_BUFFER, bsiz, _vertices.data(),
-                             _static_buffers ? GL_STATIC_DRAW : GL_STREAM_DRAW);
+                glBufferData(GL_ARRAY_BUFFER, vert_buf_size, p_vert_buf, _static_buffers ? GL_STATIC_DRAW : GL_STREAM_DRAW);
                 _vert_buf_size = _vertices.size();
 
                 TVertex::map_vertex_attributes();
@@ -130,10 +158,9 @@ namespace gldraw {
 
             // do we re-use the buffer or generate a new larger one?
             if (_indices.size() <= _ind_buf_size && !_static_buffers) {
-                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, (1 + _indices.size()) * sizeof(unsigned int), _indices.data());
+                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, index_buf_size, p_index_buf);
             } else {
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, (1 + _indices.size()) * sizeof(unsigned int), _indices.data(),
-                             _static_buffers ? GL_STATIC_DRAW : GL_STREAM_DRAW);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buf_size, p_index_buf, _static_buffers ? GL_STATIC_DRAW : GL_STREAM_DRAW);
                 _ind_buf_size = _indices.size();
             }
         }
