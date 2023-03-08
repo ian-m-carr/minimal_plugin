@@ -13,12 +13,13 @@
 namespace gldraw {
     struct coloured_vertex {
         // location
-        glmath::vec3f position;
+        glmath::vec3f position{};
         // UV
-        glmath::vec2f uv;
+        glmath::vec2f uv{};
         // colours
-        gldraw::colour fore_colour;
+        gldraw::colour fore_colour{};
 
+        coloured_vertex() = default;
         explicit coloured_vertex(glmath::vec3f position,
                                  glmath::vec2f uv = {0.0f, 0.0f},
                                  gldraw::colour fore_colour = {255, 255, 255, 255}) :
