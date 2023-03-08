@@ -78,7 +78,7 @@ namespace glmath {
         }
 
     public:
-        const column_type &operator[](int column) const {
+        constexpr const column_type &operator[](int column) const {
             return _value[column];
         }
 
