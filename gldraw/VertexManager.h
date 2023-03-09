@@ -15,7 +15,7 @@
 #include <glmath/vectors.h>
 #include <glmath/matrices.h>
 
-//#define ZINK_BUFFER_CORRUPTION_BUG
+#define ZINK_BUFFER_CORRUPTION_BUG
 
 namespace gldraw {
     template<typename TVertex>
@@ -125,6 +125,9 @@ namespace gldraw {
             // allocate new buffers one element larger
             std::vector<vertex_type> new_vert_buf(_vertices.size() + 1);
 
+            // populate the new buffer with non zero data
+            //std::memset(new_vert_buf.data(), 0xE5, new_vert_buf.size() * sizeof(vertex_type));
+
             // copy the content from the old to the expanded buffer
             std::memcpy(new_vert_buf.data(), p_vert_buf, vert_buf_size);
 
@@ -134,6 +137,9 @@ namespace gldraw {
 
             // allocate new buffers one element larger
             std::vector<unsigned int> new_index_buf(_indices.size() + 1);
+
+            // populate the new buffer with non zero data
+            //std::memset(new_index_buf.data(), 0x5E, new_index_buf.size() * sizeof(unsigned int));
 
             // copy the content from the old to the expanded buffer
             std::memcpy(new_index_buf.data(), p_index_buf, index_buf_size);
