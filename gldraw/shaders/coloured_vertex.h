@@ -30,6 +30,13 @@ namespace gldraw {
             return *this;
         };
 
+        bool operator==(const coloured_vertex &rhs) const {
+            return std::tie(position, uv, fore_colour) == std::tie(rhs.position, rhs.uv, rhs.fore_colour);
+        }
+        bool operator!=(const coloured_vertex &rhs) const {
+            return !(rhs == *this);
+        }
+
         static void map_vertex_attributes() {
             // these attributes match a shader layout like this:
             //        #version 330 core

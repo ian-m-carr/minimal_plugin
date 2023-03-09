@@ -15,7 +15,7 @@
 #include <glmath/vectors.h>
 #include <glmath/matrices.h>
 
-#define ZINK_BUFFER_CORRUPTION_BUG
+//#define ZINK_BUFFER_CORRUPTION_BUG
 
 namespace gldraw {
     template<typename TVertex>
@@ -123,7 +123,7 @@ namespace gldraw {
 
 #if defined ZINK_BUFFER_CORRUPTION_BUG
             // allocate new buffers one element larger
-            std::vector<vertex_type> new_vert_buf(_vertices.size()+1);
+            std::vector<vertex_type> new_vert_buf(_vertices.size() + 1);
 
             // copy the content from the old to the expanded buffer
             std::memcpy(new_vert_buf.data(), p_vert_buf, vert_buf_size);
@@ -133,7 +133,7 @@ namespace gldraw {
             vert_buf_size = new_vert_buf.size() * sizeof(vertex_type);
 
             // allocate new buffers one element larger
-            std::vector<unsigned int> new_index_buf(_indices.size()+1);
+            std::vector<unsigned int> new_index_buf(_indices.size() + 1);
 
             // copy the content from the old to the expanded buffer
             std::memcpy(new_index_buf.data(), p_index_buf, index_buf_size);
@@ -163,6 +163,35 @@ namespace gldraw {
                 glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buf_size, p_index_buf, _static_buffers ? GL_STATIC_DRAW : GL_STREAM_DRAW);
                 _ind_buf_size = _indices.size();
             }
+        }
+
+        bool test_buffers() {
+            // the vertex buffer
+            glBindBuffer(GL_ARRAY_BUFFER, _VBO);
+            vertex_type *p_vert_buff = static_cast<vertex_type*>(glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY));
+            if (p_vert_buff != nullptr) {
+                if (_vertices.size() > 0) {
+                    assert(_vertices[0] == p_vert_buff[0]);
+                    assert(_vertices[_vertices.size()-1] == p_vert_buff[_vertices.size()-1]);
+#if defined ZINK_BUFFER_CORRUPTION_BUG
+                    // check the padding bytes
+                    assert(p_vert_buff[_vertices.size()] == vertex_type());
+#endif
+                }
+            }
+            // the element buffer
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _EBO);
+            unsigned int *p_indx_buff = static_cast<unsigned int*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_ONLY));
+            if (p_indx_buff != nullptr) {
+                assert(_indices[0] == p_indx_buff[0]);
+                assert(_indices[_indices.size()-1] == p_indx_buff[_indices.size()-1]);
+#if defined ZINK_BUFFER_CORRUPTION_BUG
+                // check the padding bytes
+                assert(p_indx_buff[_indices.size()] == 0);
+#endif
+            }
+
+            return true;
         }
 
         [[nodiscard]] unsigned int get_vbo() const { return _VBO; }
