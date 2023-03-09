@@ -41,11 +41,11 @@ static void pre_call_gl_callback(const char *name, GLADapiproc apiproc, int len_
     GLAD_UNUSED(len_args);
 
     if (apiproc == NULL) {
-        XPLMDebugString(std::format("GLAD: {} is NULL", name).c_str());
+        XPLMDebugString(std::format("GLAD: {} is NULL\n", name).c_str());
         return;
     }
     if (glad_glGetError == NULL) {
-        XPLMDebugString("GLAD: glGetError is NULL");
+        XPLMDebugString("GLAD: glGetError is NULL\n");
         return;
     }
 
@@ -61,7 +61,7 @@ static void post_call_gl_callback(void *ret, const char *name, GLADapiproc apipr
     error_code = glad_glGetError();
 
     if (error_code != GL_NO_ERROR) {
-        XPLMDebugString(std::format("GLAD: code: {} in {}", error_code, name).c_str());
+        XPLMDebugString(std::format("GLAD: code: {} in {}\n", error_code, name).c_str());
     }
 }
 #endif
@@ -70,7 +70,7 @@ static void post_call_gl_callback(void *ret, const char *name, GLADapiproc apipr
 void GLAPIENTRY
 MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
                 GLsizei length, const GLchar *message, const void *userParam) {
-    XPLMDebugString(std::format("GL type: {} severity: {} message: {}", type, severity, message).c_str());
+    XPLMDebugString(std::format("GL type: {} severity: {} message: {}\n", type, severity, message).c_str());
 }
 #endif
 
@@ -178,6 +178,12 @@ void do_render(const gldraw::rect &rct) {
     // set the winding order back to stored value
     glFrontFace(front_face);
 #endif
+
+    if (_vmgr_) {
+        if (!_vmgr_->test_buffers()){
+            XPLMDebugString("Buffers corrupted after render\n");
+        }
+    }
 }
 
 static int avionics_draw_callback(XPLMDeviceID inDeviceID, int inIsBefore, void *inRefcon) {
@@ -227,13 +233,13 @@ void create_window() {
 }
 
 PLUGIN_API int XPluginStart(char *name, char *sig, char *desc) {
-    XPLMDebugString("XPluginStart");
+    XPLMDebugString("XPluginStart\n");
     strcpy(name, "Zink Texturing test");
     strcpy(sig, "imc.test.zink_texture_example");
     strcpy(desc, "check uv mapping under zink.");
 
     if (!gladLoaderLoadGL()) {
-        XPLMDebugString("Failed to initialize glad");
+        XPLMDebugString("Failed to initialize glad\n");
     }
 
 #if !defined (NDEBUG)
@@ -260,7 +266,7 @@ PLUGIN_API int XPluginStart(char *name, char *sig, char *desc) {
                               {1024.0f, 768.0f}});
         }
     } catch (const std::exception &ex) {
-        XPLMDebugString(std::format("exception configuring plugin: {}", ex.what()).c_str());
+        XPLMDebugString(std::format("exception configuring plugin: {}\n", ex.what()).c_str());
     }
 
     create_window();
@@ -308,7 +314,7 @@ PLUGIN_API int XPluginEnable(void) {
 }
 
 PLUGIN_API void XPluginDisable(void) {
-    XPLMDebugString("XPluginDisable");
+    XPLMDebugString("XPluginDisable\n");
 
     if (__avionics_callback_id_pfd1) {
         XPLMUnregisterAvionicsCallbacks(__avionics_callback_id_pfd1);

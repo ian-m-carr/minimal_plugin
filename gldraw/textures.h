@@ -49,7 +49,7 @@ namespace gldraw {
             glGenerateMipmap(GL_TEXTURE_2D);
 #endif
         } else {
-            XPLMDebugString(std::format("Failed to load texture: {}", stbi_failure_reason()).c_str());
+            XPLMDebugString(std::format("Failed to load texture: {}\n", stbi_failure_reason()).c_str());
         }
         // data has been transferred to the GPU we can loose it locally!
         stbi_image_free(data);
