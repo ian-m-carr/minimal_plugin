@@ -134,19 +134,6 @@ namespace gldraw {
             // use the new
             p_vert_buf = new_vert_buf.data();
             vert_buf_size = new_vert_buf.size() * sizeof(vertex_type);
-
-            // allocate new buffers one element larger
-            std::vector<unsigned int> new_index_buf(_indices.size() + 1);
-
-            // populate the new buffer with non zero data
-            //std::memset(new_index_buf.data(), 0x5E, new_index_buf.size() * sizeof(unsigned int));
-
-            // copy the content from the old to the expanded buffer
-            std::memcpy(new_index_buf.data(), p_index_buf, index_buf_size);
-
-            // use the new
-            p_index_buf = new_index_buf.data();
-            index_buf_size = new_index_buf.size() * sizeof(unsigned int);
 #endif
 
             // do we re-use the buffer or generate a new larger one?
@@ -191,10 +178,6 @@ namespace gldraw {
             if (p_indx_buff != nullptr) {
                 assert(_indices[0] == p_indx_buff[0]);
                 assert(_indices[_indices.size()-1] == p_indx_buff[_indices.size()-1]);
-#if defined ZINK_BUFFER_CORRUPTION_BUG
-                // check the padding bytes
-                assert(p_indx_buff[_indices.size()] == 0);
-#endif
             }
 
             return true;
